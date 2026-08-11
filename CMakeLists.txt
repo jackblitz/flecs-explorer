@@ -74,3 +74,9 @@ target_link_libraries(flecs-explorer PRIVATE
 # Enable testing
 enable_testing()
 add_subdirectory(tests)
+
+# Custom target to run the app in an external terminal
+add_custom_target(run-tui
+    COMMAND ${CMAKE_SOURCE_DIR}/tools/run_external.sh $<TARGET_FILE:flecs-explorer>
+    DEPENDS flecs-explorer
+)
