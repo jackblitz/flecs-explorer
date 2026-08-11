@@ -1,0 +1,13 @@
+# Build directories
+build/
+bin/
+*.o
+*.a
+*.so
+*.dylib
+
+# IDE / Editor
+.vscode/
+.idea/
+*.swp
+*~
