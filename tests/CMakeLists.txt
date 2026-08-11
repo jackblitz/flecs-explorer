@@ -28,3 +28,21 @@ target_link_libraries(test_terminal PRIVATE
 )
 
 add_test(NAME test_terminal COMMAND test_terminal)
+
+add_executable(test_layout
+    test_layout.c
+    ${CMAKE_SOURCE_DIR}/src/layout.c
+    ${CMAKE_SOURCE_DIR}/src/terminal.c
+)
+
+target_include_directories(test_layout PRIVATE
+    ${CMAKE_SOURCE_DIR}/include
+    ${NCURSES_INCLUDE_DIRS}
+)
+
+target_link_libraries(test_layout PRIVATE
+    ${NCURSES_LIBRARIES}
+)
+
+add_test(NAME test_layout COMMAND test_layout)
+
