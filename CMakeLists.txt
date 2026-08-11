@@ -54,6 +54,7 @@ find_package(Threads REQUIRED)
 # Main executable target
 add_executable(flecs-explorer
     src/main.c
+    src/terminal.c
 )
 
 target_include_directories(flecs-explorer PRIVATE
