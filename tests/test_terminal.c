@@ -9,7 +9,15 @@ void test_panel_result_to_string(void) {
     assert(strcmp(PanelResultToString((PanelResult)999), "UNKNOWN_RESULT") == 0);
 }
 
+void test_panel_terminal_handle_input(void) {
+    assert(PanelTerminalHandleInput('q') == true);
+    assert(PanelTerminalHandleInput('a') == false);
+    assert(PanelTerminalHandleInput('Q') == false);
+    assert(PanelTerminalHandleInput(27) == false); // ESC
+}
+
 int main(void) {
     test_panel_result_to_string();
+    test_panel_terminal_handle_input();
     return 0;
 }

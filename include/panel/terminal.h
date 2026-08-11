@@ -1,4 +1,5 @@
 #pragma once
+#include <stdbool.h>
 
 /**
  * @file terminal.h
@@ -25,3 +26,6 @@ const char *PanelResultToString(PanelResult result);
 PanelResult PanelTerminalInit(void);
 void PanelTerminalCleanup(void);
 void PanelTerminalSizeQuery(int *outRows, int *outCols);
+
+void PanelTerminalDrawLayout(void);
+bool PanelTerminalHandleInput(int ch);
