@@ -55,3 +55,23 @@ void PanelTerminalSizeQuery(int *outRows, int *outCols) {
         *outCols = c;
     }
 }
+
+void PanelTerminalDrawLayout(void) {
+    int maxRows, maxCols;
+    PanelTerminalSizeQuery(&maxRows, &maxCols);
+
+    // X = 30% of max width
+    int splitX = (maxCols * 30) / 100;
+
+    // Draw vertical separator
+    for (int y = 0; y < maxRows; y++) {
+        mvwaddch(stdscr, y, splitX, ACS_VLINE);
+    }
+    
+    // Refresh to show changes
+    refresh();
+}
+
+bool PanelTerminalHandleInput(int ch) {
+    return ch == 'q';
+}
