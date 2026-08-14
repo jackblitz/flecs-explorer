@@ -2,6 +2,7 @@
 #include "json/test_json.h"
 #include "panel/test_panel_input.h"
 #include "panel/test_panel_layout.h"
+#include "panel/test_panel_manager.h"
 #include "panel/test_panel_renderer.h"
 #include "panel/test_panel_theme.h"
 #include "panel/test_panel_window.h"
@@ -36,6 +37,10 @@ static const TestSuite kSuites[] = {
      .description =
          "Panel keyboard mapping, focus cycling, and mouse decoder tests",
      .runFunc = TestPanelInputRun},
+    {.featureName = "panel_manager",
+     .description =
+         "Panel manager facade, lifecycle, and signal handling tests",
+     .runFunc = TestPanelManagerRun},
     {.featureName = "http_client",
      .description = "libcurl HTTP GET client and dynamic buffer tests",
      .runFunc = TestHttpClientRun},
