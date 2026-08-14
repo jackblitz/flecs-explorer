@@ -1,7 +1,11 @@
+#define _POSIX_C_SOURCE 200809L
+
 #include "flecs_explorer/panel/panel_manager.h"
 
 #include <stdlib.h>
 #include <string.h>
+#include <sys/ioctl.h>
+#include <unistd.h>
 
 #include "panel/panel_input.h"
 #include "panel/panel_signals.h"
@@ -168,8 +172,24 @@ AppResult PanelManagerHandleResize(PanelManager *manager)
     int screenWidth = manager->layout.screenWidth;
     int screenHeight = manager->layout.screenHeight;
 
+#ifdef TIOCGWINSZ
+    struct winsize ws;
+    if (ioctl(STDOUT_FILENO, TIOCGWINSZ, &ws) == 0 && ws.ws_col > 0 &&
+        ws.ws_row > 0) {
+        screenWidth = (int)ws.ws_col;
+        screenHeight = (int)ws.ws_row;
+    } else if (ioctl(STDIN_FILENO, TIOCGWINSZ, &ws) == 0 && ws.ws_col > 0 &&
+               ws.ws_row > 0) {
+        screenWidth = (int)ws.ws_col;
+        screenHeight = (int)ws.ws_row;
+    }
+#endif
+
     if (stdscr != NULL) {
-        getmaxyx(stdscr, screenHeight, screenWidth);
+        resizeterm(screenHeight, screenWidth);
+        wresize(stdscr, screenHeight, screenWidth);
+        erase();
+        refresh();
     }
 
     PanelLayoutCompute(

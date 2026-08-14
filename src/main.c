@@ -92,8 +92,12 @@ int main(int argc, char **argv)
         }
 
         if (PanelManagerIsTooSmall(manager)) {
-            PanelRendererDrawTooSmallWarning(renderer, COLS, LINES,
-                                             config.minWidth, config.minHeight);
+            const PanelLayout *layout = PanelManagerGetLayout(manager);
+            if (layout != NULL) {
+                PanelRendererDrawTooSmallWarning(
+                    renderer, layout->screenWidth, layout->screenHeight,
+                    config.minWidth, config.minHeight);
+            }
             PanelRendererEndFrame(renderer);
         } else {
             PanelRendererBeginFrame(renderer);
