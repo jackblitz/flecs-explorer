@@ -1,7 +1,8 @@
 #include "common/test_common.h"
+#include "json/test_json.h"
+#include "rest/test_flecs_data.h"
 #include "rest/test_http_client.h"
 #include "test_cli.h"
-#include "json/test_json.h"
 #include <stdio.h>
 #include <string.h>
 
@@ -14,7 +15,10 @@ static const TestSuite kSuites[] = {
      .runFunc = TestJsonRun},
     {.featureName = "http_client",
      .description = "libcurl HTTP GET client and dynamic buffer tests",
-     .runFunc = TestHttpClientRun}};
+     .runFunc = TestHttpClientRun},
+    {.featureName = "flecs_data",
+     .description = "Flecs world data models and deep cloning tests",
+     .runFunc = TestFlecsDataRun}};
 
 static const size_t kSuiteCount = sizeof(kSuites) / sizeof(kSuites[0]);
 
