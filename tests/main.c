@@ -1,5 +1,6 @@
 #include "common/test_common.h"
 #include "json/test_json.h"
+#include "panel/test_panel_layout.h"
 #include "rest/test_flecs_data.h"
 #include "rest/test_flecs_session.h"
 #include "rest/test_http_client.h"
@@ -15,6 +16,9 @@ static const TestSuite kSuites[] = {
     {.featureName = "json",
      .description = "cJSON parsing, serialization, and memory lifecycle tests",
      .runFunc = TestJsonRun},
+    {.featureName = "panel_layout",
+     .description = "Pure panel layout partitioning and hit-testing tests",
+     .runFunc = TestPanelLayoutRun},
     {.featureName = "http_client",
      .description = "libcurl HTTP GET client and dynamic buffer tests",
      .runFunc = TestHttpClientRun},
