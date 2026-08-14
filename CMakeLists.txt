@@ -67,6 +67,7 @@ if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/src/main.c")
         ${CURSES_LIBRARIES}
         ${CURL_LIBRARIES}
         Threads::Threads
+        m
     )
 endif()
 
@@ -85,11 +86,13 @@ if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/tests/main.c")
         ${CURSES_LIBRARIES}
         ${CURL_LIBRARIES}
         Threads::Threads
+        m
     )
 
     add_test(NAME AllTests COMMAND flecs_explorer_tests --all)
     add_test(NAME CommonTests COMMAND flecs_explorer_tests common)
     add_test(NAME JsonTests COMMAND flecs_explorer_tests json)
+    add_test(NAME PanelLayoutTests COMMAND flecs_explorer_tests panel_layout)
     add_test(NAME HttpClientTests COMMAND flecs_explorer_tests http_client)
     add_test(NAME FlecsDataTests COMMAND flecs_explorer_tests flecs_data)
     add_test(NAME FlecsSessionTests COMMAND flecs_explorer_tests flecs_session)
