@@ -1,11 +1,50 @@
+#define _POSIX_C_SOURCE 200809L
+
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 
 #include "flecs_explorer/common/common.h"
 #include "flecs_explorer/panel/panel_manager.h"
 #include "flecs_explorer/panel/panel_renderer.h"
 #include "panel/panel_mock.h"
 #include "panel/panel_signals.h"
+
+/**
+ * Automatically spawns a dedicated Kitty terminal window if launched from an
+ * IDE console or non-interactive pipe that lacks full curses TTY capabilities.
+ *
+ * @param argc Argument count.
+ * @param argv Argument vector.
+ */
+static void EnsureInteractiveTerminal(int argc, char **argv)
+{
+    if (!isatty(STDIN_FILENO) && !getenv("FLECS_IN_KITTY")) {
+        setenv("FLECS_IN_KITTY", "1", 1);
+
+        char exePath[1024];
+        const ssize_t len =
+            readlink("/proc/self/exe", exePath, sizeof(exePath) - 1);
+        if (len > 0) {
+            exePath[len] = '\0';
+
+            char *args[32];
+            int idx = 0;
+            args[idx++] = "kitty";
+            args[idx++] = "--title";
+            args[idx++] = "Flecs Explorer";
+            args[idx++] = exePath;
+
+            for (int i = 1; i < argc && idx < 30; ++i) {
+                args[idx++] = argv[i];
+            }
+            args[idx] = NULL;
+
+            execvp("kitty", args);
+        }
+    }
+}
 
 /**
  * Prints CLI usage instructions.
@@ -49,6 +88,8 @@ int main(int argc, char **argv)
             return 0;
         }
     }
+
+    EnsureInteractiveTerminal(argc, argv);
 
     const PanelConfig config = {.minWidth = 80,
                                 .minHeight = 24,
