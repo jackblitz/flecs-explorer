@@ -137,22 +137,33 @@ int main(int argc, char **argv)
             PanelManagerClearDirty(manager);
         }
 
-        const int ch = getch();
+        WINDOW *inputWin =
+            PanelManagerGetWindow(manager, PanelManagerGetFocus(manager));
+        if (inputWin == NULL) {
+            inputWin = stdscr;
+        }
+        wtimeout(inputWin, 50);
+
+        const int ch = wgetch(inputWin);
         if (ch != ERR) {
             PanelEvent event;
             res = PanelManagerProcessInput(manager, ch, &event);
             if (res == APP_OK) {
-                if (event.type == PANEL_EVENT_QUIT) {
+                if (event.type == PANEL_EVENT_QUIT || ch == 'q' || ch == 'Q') {
                     running = false;
                 } else if (event.type == PANEL_EVENT_RESIZE) {
                     PanelManagerHandleResize(manager);
+                } else if (event.type == PANEL_EVENT_FOCUS_CHANGED) {
+                    PanelManagerMarkDirty(manager);
                 } else if (event.type == PANEL_EVENT_KEY) {
-                    if (event.key == 'j' || event.key == KEY_DOWN) {
+                    if (event.key == 'j' || event.key == 'J' ||
+                        event.key == KEY_DOWN) {
                         mockData.selectedEntityIndex =
                             (mockData.selectedEntityIndex + 1) %
                             mockData.totalEntities;
                         PanelManagerMarkDirty(manager);
-                    } else if (event.key == 'k' || event.key == KEY_UP) {
+                    } else if (event.key == 'k' || event.key == 'K' ||
+                               event.key == KEY_UP) {
                         mockData.selectedEntityIndex =
                             (mockData.selectedEntityIndex - 1 +
                              mockData.totalEntities) %
