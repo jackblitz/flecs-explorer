@@ -1,4 +1,4 @@
-#include "test_foundation.h"
+#include "test_json.h"
 #include "test_cli.h"
 #include "cJSON.h"
 #include <stdlib.h>
@@ -58,11 +58,11 @@ static int TestCJsonCreateAndModify(void) {
     return 0;
 }
 
-int TestFoundationRun(void) {
-    printf("[Foundation Test Suite]\n");
+int TestJsonRun(void) {
+    printf("[JSON Test Suite]\n");
     TEST_RUN(TestAssertionsPass);
     TEST_RUN(TestCJsonParseAndSerialize);
     TEST_RUN(TestCJsonCreateAndModify);
-    printf("Foundation test suite completed successfully.\n\n");
+    printf("JSON test suite completed successfully.\n\n");
     return 0;
 }

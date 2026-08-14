@@ -1,13 +1,13 @@
 #include "test_cli.h"
-#include "foundation/test_foundation.h"
+#include "json/test_json.h"
 #include <stdio.h>
 #include <string.h>
 
 static const TestSuite kSuites[] = {
     {
-        .featureName = "foundation",
-        .description = "Foundation & build system sanity tests",
-        .runFunc = TestFoundationRun
+        .featureName = "json",
+        .description = "cJSON parsing, serialization, and memory lifecycle tests",
+        .runFunc = TestJsonRun
     }
 };
 
