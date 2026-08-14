@@ -1,6 +1,9 @@
 #include "common/test_common.h"
 #include "json/test_json.h"
 #include "panel/test_panel_layout.h"
+#include "panel/test_panel_renderer.h"
+#include "panel/test_panel_theme.h"
+#include "panel/test_panel_window.h"
 #include "rest/test_flecs_data.h"
 #include "rest/test_flecs_session.h"
 #include "rest/test_http_client.h"
@@ -19,6 +22,15 @@ static const TestSuite kSuites[] = {
     {.featureName = "panel_layout",
      .description = "Pure panel layout partitioning and hit-testing tests",
      .runFunc = TestPanelLayoutRun},
+    {.featureName = "panel_theme",
+     .description = "Panel theme palette and curses color pair tests",
+     .runFunc = TestPanelThemeRun},
+    {.featureName = "panel_window",
+     .description = "Panel subwindow allocation and resize management tests",
+     .runFunc = TestPanelWindowRun},
+    {.featureName = "panel_renderer",
+     .description = "Dedicated panel renderer and drawing pipeline tests",
+     .runFunc = TestPanelRendererRun},
     {.featureName = "http_client",
      .description = "libcurl HTTP GET client and dynamic buffer tests",
      .runFunc = TestHttpClientRun},
