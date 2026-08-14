@@ -1,6 +1,8 @@
 # Build directories
 build/
 bin/
+out/
+cmake-build-*/
 *.o
 *.a
 *.so
@@ -11,3 +13,7 @@ bin/
 .idea/
 *.swp
 *~
+.DS_Store
+
+# Agent skills cache / tooling (keep local)
+.claude/
