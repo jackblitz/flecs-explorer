@@ -61,7 +61,7 @@ include_directories(
 # Main application executable (conditional on src/main.c existence)
 if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/src/main.c")
     file(GLOB_RECURSE APP_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/src/*.c")
-    add_executable(flecs_explorer ${APP_SOURCES})
+    add_executable(flecs_explorer ${APP_SOURCES} "${CMAKE_CURRENT_SOURCE_DIR}/tests/panel/panel_mock.c")
     target_link_libraries(flecs_explorer PRIVATE
         cjson_static
         ${CURSES_LIBRARIES}

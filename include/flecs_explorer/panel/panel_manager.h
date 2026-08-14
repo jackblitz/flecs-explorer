@@ -39,7 +39,6 @@
 
 #include "flecs_explorer/common/common.h"
 #include "flecs_explorer/panel/panel_layout.h"
-#include "flecs_explorer/panel/panel_mock.h"
 #include "flecs_explorer/panel/panel_renderer.h"
 #include "flecs_explorer/panel/panel_theme.h"
 #include "flecs_explorer/panel/panel_types.h"

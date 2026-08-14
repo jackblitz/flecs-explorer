@@ -9,7 +9,7 @@
  *     MockWorldData mockData;
  *     PanelMockWorldDataInit(&mockData);
  *     WINDOW *win = PanelManagerGetWindow(manager, PANEL_ENTITIES);
- *     PanelMockRenderContent(win, PANEL_ENTITIES, &mockData, true);
+ *     PanelMockRenderContent(renderer, win, PANEL_ENTITIES, &mockData, true);
  * @endcode
  *
  * Purpose:

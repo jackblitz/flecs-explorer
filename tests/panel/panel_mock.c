@@ -1,4 +1,4 @@
-#include "flecs_explorer/panel/panel_mock.h"
+#include "panel/panel_mock.h"
 
 #include <stdio.h>
 #include <string.h>

@@ -4,8 +4,8 @@
 #include <string.h>
 
 #include "flecs_explorer/common/common.h"
-#include "flecs_explorer/panel/panel_mock.h"
 #include "flecs_explorer/panel/panel_renderer.h"
+#include "panel/panel_mock.h"
 #include "test_cli.h"
 
 /**
