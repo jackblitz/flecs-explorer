@@ -33,6 +33,168 @@ struct FlecsSession {
 };
 
 /**
+ * @brief Constructs target URL and checks if worker thread is still active.
+ */
+static bool SessionGetTargetUrl(FlecsSession *session, char *outUrl,
+                                size_t maxLen)
+{
+    pthread_mutex_lock(&session->mutex);
+    if (!session->isRunning) {
+        pthread_mutex_unlock(&session->mutex);
+        return false;
+    }
+    snprintf(outUrl, maxLen, "%s%s", session->config.serverUrl,
+             session->config.endpointPath);
+    pthread_mutex_unlock(&session->mutex);
+    return true;
+}
+
+/**
+ * @brief Computes next connection state and backoff based on prior status.
+ */
+static FlecsSessionStatus SessionComputeFailureStatus(FlecsSession *session,
+                                                      uint32_t *inOutBackoffMs)
+{
+    pthread_mutex_lock(&session->mutex);
+    const FlecsSessionStatus priorStatus = session->latestData.status;
+    const uint32_t defaultInterval = session->config.pollIntervalMs;
+    const uint32_t maxBackoff = session->config.maxBackoffMs;
+    pthread_mutex_unlock(&session->mutex);
+
+    if (*inOutBackoffMs == 0) {
+        *inOutBackoffMs = defaultInterval;
+    } else {
+        *inOutBackoffMs = *inOutBackoffMs * 2;
+        if (*inOutBackoffMs > maxBackoff) {
+            *inOutBackoffMs = maxBackoff;
+        }
+    }
+
+    return (priorStatus == FLECS_SESSION_ONLINE) ? FLECS_SESSION_RECONNECTING
+                                                 : FLECS_SESSION_OFFLINE;
+}
+
+/**
+ * @brief Executes a single HTTP poll, measures latency, and parses JSON
+ * response.
+ */
+static bool SessionExecutePollCycle(FlecsSession *session,
+                                    FlecsWorldData *outCycleData,
+                                    uint32_t *inOutBackoffMs,
+                                    uint32_t *outSleepMs)
+{
+    char fullUrl[512];
+    if (!SessionGetTargetUrl(session, fullUrl, sizeof(fullUrl))) {
+        return false;
+    }
+
+    struct timespec start;
+    struct timespec end;
+    clock_gettime(CLOCK_MONOTONIC, &start);
+
+    HttpResponse response = {0};
+    const AppResult httpRes =
+        HttpClientGet(session->httpClient, fullUrl, &response);
+
+    clock_gettime(CLOCK_MONOTONIC, &end);
+
+    const uint64_t latencyMs =
+        (uint64_t)((end.tv_sec - start.tv_sec) * 1000 +
+                   (end.tv_nsec - start.tv_nsec) / 1000000);
+    const uint64_t nowMs =
+        (uint64_t)(end.tv_sec * 1000 + end.tv_nsec / 1000000);
+
+    cJSON *parsedJson = NULL;
+    FlecsSessionStatus newStatus = FLECS_SESSION_OFFLINE;
+    char statusMsg[256] = {0};
+
+    if (httpRes == APP_OK && response.statusCode == 200 &&
+        response.body != NULL) {
+        parsedJson = cJSON_Parse(response.body);
+        if (parsedJson != NULL) {
+            newStatus = FLECS_SESSION_ONLINE;
+            snprintf(statusMsg, sizeof(statusMsg), "Online");
+            *inOutBackoffMs = session->config.pollIntervalMs;
+        } else {
+            newStatus = FLECS_SESSION_RECONNECTING;
+            snprintf(statusMsg, sizeof(statusMsg), "JSON parse error");
+        }
+    } else {
+        if (response.errorMessage[0] != '\0') {
+            snprintf(statusMsg, sizeof(statusMsg), "%s", response.errorMessage);
+        } else {
+            snprintf(statusMsg, sizeof(statusMsg), "HTTP %d",
+                     response.statusCode);
+        }
+        newStatus = SessionComputeFailureStatus(session, inOutBackoffMs);
+    }
+
+    outCycleData->status = newStatus;
+    outCycleData->lastHttpStatus = response.statusCode;
+    outCycleData->lastPollTimeMs = nowMs;
+    outCycleData->latencyMs = latencyMs;
+    outCycleData->worldJson = parsedJson;
+    snprintf(outCycleData->statusMessage, sizeof(outCycleData->statusMessage),
+             "%s", statusMsg);
+
+    *outSleepMs = (newStatus == FLECS_SESSION_ONLINE)
+                      ? session->config.pollIntervalMs
+                      : *inOutBackoffMs;
+
+    HttpResponseFree(&response);
+    return true;
+}
+
+/**
+ * @brief Thread-safely updates session state with new poll cycle results.
+ */
+static bool SessionUpdateState(FlecsSession *session, FlecsWorldData *cycleData)
+{
+    pthread_mutex_lock(&session->mutex);
+    if (!session->isRunning) {
+        if (cycleData->worldJson != NULL) {
+            cJSON_Delete(cycleData->worldJson);
+            cycleData->worldJson = NULL;
+        }
+        pthread_mutex_unlock(&session->mutex);
+        return false;
+    }
+
+    FlecsWorldDataFree(&session->latestData);
+    session->latestData = *cycleData;
+    pthread_mutex_unlock(&session->mutex);
+    return true;
+}
+
+/**
+ * @brief Sleeps for the requested interval using condition timedwait for
+ * instant wake.
+ */
+static bool SessionTimedSleep(FlecsSession *session, uint32_t sleepMs)
+{
+    struct timespec sleepTs;
+    clock_gettime(CLOCK_REALTIME, &sleepTs);
+    sleepTs.tv_sec += (time_t)(sleepMs / 1000);
+    sleepTs.tv_nsec += (long)((sleepMs % 1000) * 1000000L);
+    if (sleepTs.tv_nsec >= 1000000000L) {
+        sleepTs.tv_sec += 1;
+        sleepTs.tv_nsec -= 1000000000L;
+    }
+
+    pthread_mutex_lock(&session->mutex);
+    while (session->isRunning) {
+        const int waitRes =
+            pthread_cond_timedwait(&session->cond, &session->mutex, &sleepTs);
+        if (waitRes != 0 || !session->isRunning) {
+            break;
+        }
+    }
+    const bool isStillRunning = session->isRunning;
+    pthread_mutex_unlock(&session->mutex);
+    return isStillRunning;
+}
+
+/**
  * @brief Background pthread routine for periodic decoupled REST polling.
  */
 static void *WorkerThreadFunc(void *arg)
@@ -41,121 +203,21 @@ static void *WorkerThreadFunc(void *arg)
     uint32_t currentBackoffMs = 0;
 
     while (1) {
-        char fullUrl[512];
+        FlecsWorldData cycleData = {0};
+        uint32_t sleepMs = 0;
 
-        pthread_mutex_lock(&session->mutex);
-        if (!session->isRunning) {
-            pthread_mutex_unlock(&session->mutex);
+        if (!SessionExecutePollCycle(session, &cycleData, &currentBackoffMs,
+                                     &sleepMs)) {
             break;
         }
 
-        snprintf(fullUrl, sizeof(fullUrl), "%s%s", session->config.serverUrl,
-                 session->config.endpointPath);
-        pthread_mutex_unlock(&session->mutex);
-
-        struct timespec start;
-        struct timespec end;
-        clock_gettime(CLOCK_MONOTONIC, &start);
-
-        HttpResponse response = {0};
-        const AppResult httpRes =
-            HttpClientGet(session->httpClient, fullUrl, &response);
-
-        clock_gettime(CLOCK_MONOTONIC, &end);
-
-        const uint64_t latencyMs =
-            (uint64_t)((end.tv_sec - start.tv_sec) * 1000 +
-                       (end.tv_nsec - start.tv_nsec) / 1000000);
-        const uint64_t nowMs =
-            (uint64_t)(end.tv_sec * 1000 + end.tv_nsec / 1000000);
-
-        cJSON *parsedJson = NULL;
-        FlecsSessionStatus newStatus = FLECS_SESSION_OFFLINE;
-        char statusMsg[256] = {0};
-
-        if (httpRes == APP_OK && response.statusCode == 200 &&
-            response.body != NULL) {
-            parsedJson = cJSON_Parse(response.body);
-            if (parsedJson != NULL) {
-                newStatus = FLECS_SESSION_ONLINE;
-                snprintf(statusMsg, sizeof(statusMsg), "Online");
-                currentBackoffMs = session->config.pollIntervalMs;
-            } else {
-                newStatus = FLECS_SESSION_RECONNECTING;
-                snprintf(statusMsg, sizeof(statusMsg), "JSON parse error");
-            }
-        } else {
-            if (response.errorMessage[0] != '\0') {
-                snprintf(statusMsg, sizeof(statusMsg), "%s",
-                         response.errorMessage);
-            } else {
-                snprintf(statusMsg, sizeof(statusMsg), "HTTP %d",
-                         response.statusCode);
-            }
-
-            pthread_mutex_lock(&session->mutex);
-            const FlecsSessionStatus priorStatus = session->latestData.status;
-            pthread_mutex_unlock(&session->mutex);
-
-            if (priorStatus == FLECS_SESSION_ONLINE) {
-                newStatus = FLECS_SESSION_RECONNECTING;
-            } else {
-                newStatus = FLECS_SESSION_OFFLINE;
-            }
-
-            if (currentBackoffMs == 0) {
-                currentBackoffMs = session->config.pollIntervalMs;
-            } else {
-                currentBackoffMs = currentBackoffMs * 2;
-                if (currentBackoffMs > session->config.maxBackoffMs) {
-                    currentBackoffMs = session->config.maxBackoffMs;
-                }
-            }
-        }
-
-        const int lastStatus = response.statusCode;
-        HttpResponseFree(&response);
-
-        pthread_mutex_lock(&session->mutex);
-        if (!session->isRunning) {
-            if (parsedJson != NULL) {
-                cJSON_Delete(parsedJson);
-            }
-            pthread_mutex_unlock(&session->mutex);
+        if (!SessionUpdateState(session, &cycleData)) {
             break;
         }
 
-        FlecsWorldDataFree(&session->latestData);
-        session->latestData.status = newStatus;
-        session->latestData.lastHttpStatus = lastStatus;
-        session->latestData.lastPollTimeMs = nowMs;
-        session->latestData.latencyMs = latencyMs;
-        session->latestData.worldJson = parsedJson;
-        snprintf(session->latestData.statusMessage,
-                 sizeof(session->latestData.statusMessage), "%s", statusMsg);
-
-        const uint32_t sleepMs = (newStatus == FLECS_SESSION_ONLINE)
-                                     ? session->config.pollIntervalMs
-                                     : currentBackoffMs;
-
-        struct timespec sleepTs;
-        clock_gettime(CLOCK_REALTIME, &sleepTs);
-        sleepTs.tv_sec += (time_t)(sleepMs / 1000);
-        sleepTs.tv_nsec += (long)((sleepMs % 1000) * 1000000L);
-        if (sleepTs.tv_nsec >= 1000000000L) {
-            sleepTs.tv_sec += 1;
-            sleepTs.tv_nsec -= 1000000000L;
+        if (!SessionTimedSleep(session, sleepMs)) {
+            break;
         }
-
-        while (session->isRunning) {
-            const int waitRes = pthread_cond_timedwait(
-                &session->cond, &session->mutex, &sleepTs);
-            if (waitRes != 0 || !session->isRunning) {
-                break;
-            }
-        }
-
-        pthread_mutex_unlock(&session->mutex);
     }
 
     return NULL;
