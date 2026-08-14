@@ -1,6 +1,7 @@
 #include "common/test_common.h"
 #include "json/test_json.h"
 #include "rest/test_flecs_data.h"
+#include "rest/test_flecs_session.h"
 #include "rest/test_http_client.h"
 #include "test_cli.h"
 #include <stdio.h>
@@ -18,7 +19,10 @@ static const TestSuite kSuites[] = {
      .runFunc = TestHttpClientRun},
     {.featureName = "flecs_data",
      .description = "Flecs world data models and deep cloning tests",
-     .runFunc = TestFlecsDataRun}};
+     .runFunc = TestFlecsDataRun},
+    {.featureName = "flecs_session",
+     .description = "Flecs session background thread and sync engine tests",
+     .runFunc = TestFlecsSessionRun}};
 
 static const size_t kSuiteCount = sizeof(kSuites) / sizeof(kSuites[0]);
 
