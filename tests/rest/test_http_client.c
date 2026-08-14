@@ -7,7 +7,7 @@
 #include <string.h>
 #include <time.h>
 
-#include "flecs_explorer/http_client.h"
+#include "flecs_explorer/rest/http_client.h"
 #include "test_cli.h"
 
 static int TestHttpClientCreateDestroy(void)

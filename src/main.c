@@ -1,4 +1,4 @@
-#include "flecs_explorer/common.h"
+#include "flecs_explorer/common/common.h"
 #include "cJSON.h"
 #include <curl/curl.h>
 #include <curses.h>

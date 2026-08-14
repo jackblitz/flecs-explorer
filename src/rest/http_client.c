@@ -1,4 +1,4 @@
-#include "flecs_explorer/http_client.h"
+#include "flecs_explorer/rest/http_client.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -6,7 +6,7 @@
 
 #include <curl/curl.h>
 
-#include "flecs_explorer/common.h"
+#include "flecs_explorer/common/common.h"
 
 #define HTTP_DEFAULT_TIMEOUT_MS 2000L
 #define HTTP_DEFAULT_CONNECT_TIMEOUT_MS 1000L

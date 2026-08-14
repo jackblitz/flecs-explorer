@@ -1,6 +1,6 @@
 #include "test_common.h"
 #include "test_cli.h"
-#include "flecs_explorer/common.h"
+#include "flecs_explorer/common/common.h"
 
 static int TestVersionConstants(void)
 {

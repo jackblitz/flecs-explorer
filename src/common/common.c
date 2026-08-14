@@ -1,4 +1,4 @@
-#include "flecs_explorer/common.h"
+#include "flecs_explorer/common/common.h"
 
 const char *AppResultToString(AppResult result)
 {

@@ -45,7 +45,7 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#include "flecs_explorer/common.h"
+#include "flecs_explorer/common/common.h"
 
 #ifdef __cplusplus
 extern "C" {
