@@ -169,22 +169,12 @@ void PanelMockRenderContent(PanelRenderer *renderer, WINDOW *win, PanelId panel,
     switch (panel) {
     case PANEL_HEADER: {
         char buf[256];
-        snprintf(buf, sizeof(buf), "Flecs Explorer v0.1.0");
-        PanelRendererDrawText(renderer, win, 1, 2, buf, PANEL_COLOR_CHROME);
-
-        snprintf(buf, sizeof(buf), "World: %s", data->worldName);
-        PanelRendererDrawText(renderer, win, 1, 28, buf, PANEL_COLOR_KEYWORD);
-
-        snprintf(buf, sizeof(buf), "Status: %s", data->status);
-        PanelRendererDrawText(renderer, win, 1, 55, buf,
-                              PANEL_COLOR_STATUS_ONLINE);
-
         snprintf(buf, sizeof(buf),
-                 "Entities: %d  |  Tables: %d  |  "
-                 "Systems: %d  |  FPS: %.1f",
-                 data->entityCount, data->tableCount, data->systemCount,
-                 data->fps);
-        PanelRendererDrawText(renderer, win, 2, 2, buf, PANEL_COLOR_DEFAULT);
+                 "Flecs Explorer v0.1.0  |  World: %-16s  |  Status: %-6s  |  "
+                 "FPS: %4.1f  |  Entities: %-5d  |  Tables: %-2d",
+                 data->worldName, data->status, data->fps, data->entityCount,
+                 data->tableCount);
+        PanelRendererDrawText(renderer, win, 1, 2, buf, PANEL_COLOR_CHROME);
         break;
     }
 
