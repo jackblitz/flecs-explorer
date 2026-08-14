@@ -59,6 +59,7 @@ void PanelRendererFlushWindow(PanelRenderer *renderer, WINDOW *win)
 {
     (void)renderer;
     if (win != NULL) {
+        touchwin(win);
         wnoutrefresh(win);
     }
 }

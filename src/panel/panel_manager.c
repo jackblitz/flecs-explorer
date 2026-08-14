@@ -106,13 +106,27 @@ AppResult PanelManagerInitTerminal(PanelManager *manager)
     int screenHeight = 0;
     getmaxyx(stdscr, screenHeight, screenWidth);
 
+#ifdef TIOCGWINSZ
+    struct winsize ws;
+    if (ioctl(STDOUT_FILENO, TIOCGWINSZ, &ws) == 0 && ws.ws_col > 0 &&
+        ws.ws_row > 0) {
+        screenWidth = (int)ws.ws_col;
+        screenHeight = (int)ws.ws_row;
+        resizeterm(screenHeight, screenWidth);
+    }
+#endif
+
     PanelLayoutCompute(
         screenWidth, screenHeight, manager->config.entityPanelRatio,
         manager->config.minWidth, manager->config.minHeight, &manager->layout);
 
     PanelWindowsResize(manager->windows, &manager->layout);
 
+    erase();
+    refresh();
+
     manager->terminalInitialized = true;
+    manager->isDirty = true;
     return APP_OK;
 }
 
