@@ -18,3 +18,4 @@ cmake-build-*/
 
 # Agent skills cache / tooling (keep local)
 .claude/
+.agents/
