@@ -10,6 +10,18 @@
 #include "flecs_explorer/rest/http_client.h"
 #include "test_cli.h"
 
+/**
+ * @brief Tests client lifecycle: creation, configuration options, and
+ * destruction.
+ *
+ * Why:
+ * Verifies that:
+ * 1. Passing a NULL outClient parameter returns APP_ERROR_INVALID_ARGUMENT
+ * without dereferencing NULL.
+ * 2. Passing custom HttpClientConfig parameters properly allocates and
+ * initializes internal curl easy handles and timeout settings.
+ * 3. HttpClientDestroy cleanly releases curl handles and is safe against NULL.
+ */
 static int TestHttpClientCreateDestroy(void)
 {
     HttpClient *client = NULL;
@@ -27,11 +39,24 @@ static int TestHttpClientCreateDestroy(void)
     TEST_ASSERT_NOT_NULL(client, "client handle must not be null");
 
     HttpClientDestroy(client);
-    HttpClientDestroy(NULL); // Null-safe no-op
+    HttpClientDestroy(NULL); // Invariant: Null-safe no-op
 
     return 0;
 }
 
+/**
+ * @brief Tests HttpResponse dynamic memory cleanup and reset semantics.
+ *
+ * Why:
+ * HttpResponse contains a dynamically allocated `body` buffer populated by
+ * libcurl write callbacks. We must guarantee that:
+ * 1. Calling HttpResponseFree on a NULL pointer is a safe no-op.
+ * 2. Calling HttpResponseFree on an empty or zero-initialized struct does not
+ * crash.
+ * 3. Calling HttpResponseFree on an allocated response body frees the heap
+ * buffer and resets all fields (body, bodySize, statusCode) to prevent
+ * use-after-free or double-free bugs.
+ */
 static int TestHttpResponseFreeNullSafety(void)
 {
     HttpResponseFree(NULL);
@@ -57,6 +82,15 @@ static int TestHttpResponseFreeNullSafety(void)
     return 0;
 }
 
+/**
+ * @brief Tests input validation and defensive argument checking for
+ * HttpClientGet.
+ *
+ * Why:
+ * The REST sync engine and UI callers pass variable URLs and pointers.
+ * HttpClientGet must validate every pointer upfront and return
+ * APP_ERROR_INVALID_ARGUMENT without attempting network I/O or crashing.
+ */
 static int TestHttpClientInvalidArguments(void)
 {
     HttpClient *client = NULL;
@@ -81,6 +115,19 @@ static int TestHttpClientInvalidArguments(void)
     return 0;
 }
 
+/**
+ * @brief Tests network error handling when connecting to an unreachable
+ * host/port.
+ *
+ * Why:
+ * When the Flecs server is offline, killed, or restarting, GET requests will
+ * fail at the socket level. We must verify that:
+ * 1. HttpClientGet returns APP_ERROR_NETWORK rather than crashing or hanging.
+ * 2. response.statusCode is set to 0.
+ * 3. response.body remains NULL (no leaked buffers).
+ * 4. response.errorMessage contains a non-empty diagnostic message from libcurl
+ *    (e.g., "Couldn't connect to server").
+ */
 static int TestHttpClientConnectionFailure(void)
 {
     const HttpClientConfig config = {
@@ -91,7 +138,7 @@ static int TestHttpClientConnectionFailure(void)
     TEST_ASSERT_EQ(res, APP_OK, "HttpClientCreate should succeed");
 
     HttpResponse response = {0};
-    // Port 59999 is unlikely to be open on loopback
+    // Port 59999 is an unopened port on loopback
     res =
         HttpClientGet(client, "http://127.0.0.1:59999/nonexistent", &response);
     TEST_ASSERT_EQ(
@@ -108,6 +155,18 @@ static int TestHttpClientConnectionFailure(void)
     return 0;
 }
 
+/**
+ * @brief Tests request timeout enforcement on non-responsive network endpoints.
+ *
+ * Why:
+ * If the Flecs server hangs or an invalid IP is provided, the explorer's
+ * background thread must not hang indefinitely. This test uses an unroutable
+ * RFC 5737 IP (192.0.2.1) with a strict connect timeout (50ms) to ensure:
+ * 1. The request aborts promptly without hanging.
+ * 2. The measured elapsed time is strictly bound within the expected threshold
+ * (<1s).
+ * 3. APP_ERROR_NETWORK is returned gracefully.
+ */
 static int TestHttpClientTimeoutBehavior(void)
 {
     const HttpClientConfig config = {.timeoutMs = 100,
@@ -140,6 +199,11 @@ static int TestHttpClientTimeoutBehavior(void)
     return 0;
 }
 
+/**
+ * @brief Runs all registered HTTP client unit and integration tests.
+ *
+ * @return 0 on success, or non-zero on test assertion failure.
+ */
 int TestHttpClientRun(void)
 {
     printf("[HTTP Client Test Suite]\n");

@@ -127,12 +127,6 @@ void HttpResponseFree(HttpResponse *response);
  */
 void HttpClientDestroy(HttpClient *client);
 
-/* Compatibility aliases matching spec naming */
-#define HttpClient_Create HttpClientCreate
-#define HttpClient_Get HttpClientGet
-#define HttpResponse_Free HttpResponseFree
-#define HttpClient_Destroy HttpClientDestroy
-
 #ifdef __cplusplus
 }
 #endif
