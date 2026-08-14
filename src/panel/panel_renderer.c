@@ -50,6 +50,20 @@ AppResult PanelRendererBeginFrame(PanelRenderer *renderer)
 }
 
 /**
+ * Queues a curses window's virtual buffer to be drawn on the next frame.
+ *
+ * @param renderer PanelRenderer instance.
+ * @param win Target curses WINDOW.
+ */
+void PanelRendererFlushWindow(PanelRenderer *renderer, WINDOW *win)
+{
+    (void)renderer;
+    if (win != NULL) {
+        wnoutrefresh(win);
+    }
+}
+
+/**
  * Commits all queued window buffer updates atomically (doupdate).
  *
  * @param renderer PanelRenderer instance.

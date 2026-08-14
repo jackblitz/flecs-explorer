@@ -21,6 +21,7 @@ struct PanelManager {
     PanelWindows *windows;
     PanelId focusedPanel;
     bool terminalInitialized;
+    bool isDirty;
 };
 
 /**
@@ -49,6 +50,7 @@ AppResult PanelManagerCreate(const PanelConfig *config,
     manager->config = *config;
     manager->focusedPanel = PANEL_ENTITIES;
     manager->terminalInitialized = false;
+    manager->isDirty = true;
 
     // Use current screen dimensions or configured defaults
     int initialWidth = config->minWidth;
@@ -196,6 +198,7 @@ AppResult PanelManagerHandleResize(PanelManager *manager)
         screenWidth, screenHeight, manager->config.entityPanelRatio,
         manager->config.minWidth, manager->config.minHeight, &manager->layout);
 
+    manager->isDirty = true;
     return PanelWindowsResize(manager->windows, &manager->layout);
 }
 
@@ -215,8 +218,12 @@ AppResult PanelManagerProcessInput(PanelManager *manager, int ch,
         return APP_ERROR_INVALID_ARGUMENT;
     }
 
-    return PanelInputProcess(&manager->layout, &manager->focusedPanel, ch,
-                             outEvent);
+    const AppResult res = PanelInputProcess(
+        &manager->layout, &manager->focusedPanel, ch, outEvent);
+    if (res == APP_OK) {
+        manager->isDirty = true;
+    }
+    return res;
 }
 
 /**
@@ -231,13 +238,17 @@ void PanelManagerSetFocus(PanelManager *manager, PanelId panel)
         return;
     }
 
-    manager->focusedPanel = panel;
+    if (manager->focusedPanel != panel) {
+        manager->focusedPanel = panel;
+        manager->isDirty = true;
+    }
 }
 
 /**
  * Returns the currently focused panel ID.
  *
  * @param manager PanelManager instance.
+ * @param panel PanelId enum value.
  * @return Currently focused PanelId, or PANEL_COUNT if manager is NULL.
  */
 PanelId PanelManagerGetFocus(const PanelManager *manager)
@@ -259,6 +270,7 @@ void PanelManagerFocusNext(PanelManager *manager)
         return;
     }
     PanelInputFocusNext(&manager->focusedPanel);
+    manager->isDirty = true;
 }
 
 /**
@@ -272,6 +284,7 @@ void PanelManagerFocusPrev(PanelManager *manager)
         return;
     }
     PanelInputFocusPrev(&manager->focusedPanel);
+    manager->isDirty = true;
 }
 
 /**
@@ -332,4 +345,44 @@ const PanelLayout *PanelManagerGetLayout(const PanelManager *manager)
         return NULL;
     }
     return &manager->layout;
+}
+
+/**
+ * Checks if the panel manager has pending UI state changes requiring a redraw.
+ *
+ * @param manager PanelManager instance.
+ * @return true if dirty; false otherwise.
+ */
+bool PanelManagerIsDirty(const PanelManager *manager)
+{
+    if (manager == NULL) {
+        return false;
+    }
+    return manager->isDirty;
+}
+
+/**
+ * Marks the panel manager as dirty, requesting a redraw on the next frame.
+ *
+ * @param manager PanelManager instance.
+ */
+void PanelManagerMarkDirty(PanelManager *manager)
+{
+    if (manager == NULL) {
+        return;
+    }
+    manager->isDirty = true;
+}
+
+/**
+ * Clears the dirty flag on the panel manager after rendering completes.
+ *
+ * @param manager PanelManager instance.
+ */
+void PanelManagerClearDirty(PanelManager *manager)
+{
+    if (manager == NULL) {
+        return;
+    }
+    manager->isDirty = false;
 }

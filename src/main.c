@@ -85,16 +85,13 @@ int main(int argc, char **argv)
     timeout(50);
 
     bool running = true;
-    bool needsRedraw = true;
-
     while (running && !PanelSignalsReceivedQuit()) {
         if (PanelSignalsReceivedResize()) {
             PanelSignalsClearResize();
             PanelManagerHandleResize(manager);
-            needsRedraw = true;
         }
 
-        if (needsRedraw) {
+        if (PanelManagerIsDirty(manager)) {
             if (PanelManagerIsTooSmall(manager)) {
                 const PanelLayout *layout = PanelManagerGetLayout(manager);
                 if (layout != NULL) {
@@ -132,17 +129,16 @@ int main(int argc, char **argv)
 
                     PanelMockRenderContent(renderer, win, (PanelId)p, &mockData,
                                            isFocused);
-                    wnoutrefresh(win);
+                    PanelRendererFlushWindow(renderer, win);
                 }
 
                 PanelRendererEndFrame(renderer);
             }
-            needsRedraw = false;
+            PanelManagerClearDirty(manager);
         }
 
         const int ch = getch();
         if (ch != ERR) {
-            needsRedraw = true;
             PanelEvent event;
             res = PanelManagerProcessInput(manager, ch, &event);
             if (res == APP_OK) {
@@ -155,11 +151,13 @@ int main(int argc, char **argv)
                         mockData.selectedEntityIndex =
                             (mockData.selectedEntityIndex + 1) %
                             mockData.totalEntities;
+                        PanelManagerMarkDirty(manager);
                     } else if (event.key == 'k' || event.key == KEY_UP) {
                         mockData.selectedEntityIndex =
                             (mockData.selectedEntityIndex - 1 +
                              mockData.totalEntities) %
                             mockData.totalEntities;
+                        PanelManagerMarkDirty(manager);
                     }
                 } else if (event.type == PANEL_EVENT_MOUSE_CLICK) {
                     if (event.targetPanel == PANEL_ENTITIES) {
@@ -167,6 +165,7 @@ int main(int argc, char **argv)
                         if (clickedIdx >= 0 &&
                             clickedIdx < mockData.totalEntities) {
                             mockData.selectedEntityIndex = clickedIdx;
+                            PanelManagerMarkDirty(manager);
                         }
                     }
                 } else if (event.type == PANEL_EVENT_MOUSE_SCROLL) {
@@ -174,11 +173,13 @@ int main(int argc, char **argv)
                         mockData.selectedEntityIndex =
                             (mockData.selectedEntityIndex + 1) %
                             mockData.totalEntities;
+                        PanelManagerMarkDirty(manager);
                     } else if (event.scrollDelta < 0) {
                         mockData.selectedEntityIndex =
                             (mockData.selectedEntityIndex - 1 +
                              mockData.totalEntities) %
                             mockData.totalEntities;
+                        PanelManagerMarkDirty(manager);
                     }
                 }
             }

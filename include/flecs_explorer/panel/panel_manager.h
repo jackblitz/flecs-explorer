@@ -169,6 +169,30 @@ const PanelLayout *PanelManagerGetLayout(const PanelManager *manager);
  */
 bool PanelManagerIsTooSmall(const PanelManager *manager);
 
+/**
+ * @brief Checks if the panel manager has pending UI state changes requiring a
+ * redraw.
+ *
+ * @param manager PanelManager instance. Non-NULL.
+ * @return true if dirty; false otherwise.
+ */
+bool PanelManagerIsDirty(const PanelManager *manager);
+
+/**
+ * @brief Marks the panel manager as dirty, requesting a redraw on the next
+ * frame.
+ *
+ * @param manager PanelManager instance. Non-NULL.
+ */
+void PanelManagerMarkDirty(PanelManager *manager);
+
+/**
+ * @brief Clears the dirty flag on the panel manager after rendering completes.
+ *
+ * @param manager PanelManager instance. Non-NULL.
+ */
+void PanelManagerClearDirty(PanelManager *manager);
+
 #ifdef __cplusplus
 }
 #endif

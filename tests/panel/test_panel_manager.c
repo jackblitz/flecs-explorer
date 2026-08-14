@@ -211,6 +211,52 @@ static int TestPanelManagerInvalidArgs(void)
                      "GetWindow(NULL) returns NULL");
     TEST_ASSERT(PanelManagerIsTooSmall(NULL), "IsTooSmall(NULL) returns true");
 
+    // Dirty APIs with NULL
+    TEST_ASSERT(!PanelManagerIsDirty(NULL), "IsDirty(NULL) returns false");
+    PanelManagerMarkDirty(NULL);
+    PanelManagerClearDirty(NULL);
+
+    return 0;
+}
+
+/**
+ * @brief Validates dirty state tracking and transitions.
+ */
+static int TestPanelManagerDirtyState(void)
+{
+    PanelConfig config = {.minWidth = 80,
+                          .minHeight = 24,
+                          .entityPanelRatio = 0.35,
+                          .enableMouse = false,
+                          .enableColors = false,
+                          .useDarculaTheme = true};
+
+    PanelManager *manager = NULL;
+    PanelManagerCreate(&config, &manager);
+
+    // Initial state must be dirty
+    TEST_ASSERT(PanelManagerIsDirty(manager),
+                "Newly created manager should be dirty");
+
+    PanelManagerClearDirty(manager);
+    TEST_ASSERT(!PanelManagerIsDirty(manager),
+                "Manager should be clean after ClearDirty");
+
+    PanelManagerMarkDirty(manager);
+    TEST_ASSERT(PanelManagerIsDirty(manager),
+                "Manager should be dirty after MarkDirty");
+
+    PanelManagerClearDirty(manager);
+    PanelManagerSetFocus(manager, PANEL_INSPECTOR);
+    TEST_ASSERT(PanelManagerIsDirty(manager),
+                "Focus change should mark manager dirty");
+
+    PanelManagerClearDirty(manager);
+    PanelManagerFocusNext(manager);
+    TEST_ASSERT(PanelManagerIsDirty(manager),
+                "FocusNext should mark manager dirty");
+
+    PanelManagerDestroy(manager);
     return 0;
 }
 
@@ -221,6 +267,7 @@ int TestPanelManagerRun(void)
     TEST_RUN(TestPanelManagerFocusManagement);
     TEST_RUN(TestPanelManagerProcessInput);
     TEST_RUN(TestPanelManagerResizeAndSignals);
+    TEST_RUN(TestPanelManagerDirtyState);
     TEST_RUN(TestPanelManagerInvalidArgs);
     printf("Panel manager test suite completed successfully.\n\n");
     return 0;
