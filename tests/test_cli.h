@@ -29,6 +29,21 @@ typedef struct TestSuite {
         }                                                                      \
     } while (0)
 
+#define TEST_ASSERT_DOUBLE_EQ(a, b, eps, msg)                                 \
+    do {                                                                       \
+        double diff = (double)(a) - (double)(b);                               \
+        if (diff < 0.0) {                                                      \
+            diff = -diff;                                                      \
+        }                                                                      \
+        if (diff > (double)(eps)) {                                            \
+            fprintf(stderr,                                                    \
+                    "  [FAIL] %s:%d: %s (expected %f, got %f, eps %f)\n",      \
+                    __FILE__, __LINE__, (msg), (double)(b), (double)(a),       \
+                    (double)(eps));                                            \
+            return 1;                                                          \
+        }                                                                      \
+    } while (0)
+
 #define TEST_ASSERT_STR_EQ(a, b, msg)                                          \
     do {                                                                       \
         const char *actualStr = (a);                                           \

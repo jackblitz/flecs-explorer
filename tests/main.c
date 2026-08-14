@@ -3,6 +3,7 @@
 #include "rest/test_flecs_data.h"
 #include "rest/test_flecs_session.h"
 #include "rest/test_http_client.h"
+#include "rest/test_rest.h"
 #include "test_cli.h"
 #include <stdio.h>
 #include <string.h>
@@ -22,7 +23,10 @@ static const TestSuite kSuites[] = {
      .runFunc = TestFlecsDataRun},
     {.featureName = "flecs_session",
      .description = "Flecs session background thread and sync engine tests",
-     .runFunc = TestFlecsSessionRun}};
+     .runFunc = TestFlecsSessionRun},
+    {.featureName = "rest",
+     .description = "Unified REST subsystem integration and scenario tests",
+     .runFunc = TestRestRun}};
 
 static const size_t kSuiteCount = sizeof(kSuites) / sizeof(kSuites[0]);
 
