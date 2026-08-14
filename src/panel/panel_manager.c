@@ -189,7 +189,7 @@ AppResult PanelManagerHandleResize(PanelManager *manager)
         resizeterm(screenHeight, screenWidth);
         wresize(stdscr, screenHeight, screenWidth);
         erase();
-        refresh();
+        wnoutrefresh(stdscr);
     }
 
     PanelLayoutCompute(

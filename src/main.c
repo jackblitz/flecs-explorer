@@ -81,59 +81,68 @@ int main(int argc, char **argv)
     MockWorldData mockData;
     PanelMockWorldDataInit(&mockData);
 
-    // Set 33ms non-blocking input timeout (~30 FPS refresh rate)
-    timeout(33);
+    // Set 50ms non-blocking input timeout
+    timeout(50);
 
     bool running = true;
+    bool needsRedraw = true;
+
     while (running && !PanelSignalsReceivedQuit()) {
         if (PanelSignalsReceivedResize()) {
             PanelSignalsClearResize();
             PanelManagerHandleResize(manager);
+            needsRedraw = true;
         }
 
-        if (PanelManagerIsTooSmall(manager)) {
-            const PanelLayout *layout = PanelManagerGetLayout(manager);
-            if (layout != NULL) {
-                PanelRendererDrawTooSmallWarning(
-                    renderer, layout->screenWidth, layout->screenHeight,
-                    config.minWidth, config.minHeight);
+        if (needsRedraw) {
+            if (PanelManagerIsTooSmall(manager)) {
+                const PanelLayout *layout = PanelManagerGetLayout(manager);
+                if (layout != NULL) {
+                    PanelRendererDrawTooSmallWarning(
+                        renderer, layout->screenWidth, layout->screenHeight,
+                        config.minWidth, config.minHeight);
+                }
+                PanelRendererEndFrame(renderer);
+            } else {
+                PanelRendererBeginFrame(renderer);
+
+                for (int p = 0; p < PANEL_COUNT; ++p) {
+                    WINDOW *win = PanelManagerGetWindow(manager, (PanelId)p);
+                    if (win == NULL) {
+                        continue;
+                    }
+
+                    const bool isFocused =
+                        (PanelManagerGetFocus(manager) == (PanelId)p);
+                    PanelRendererClearWindow(renderer, win);
+
+                    const char *title = NULL;
+                    if (p == PANEL_HEADER) {
+                        title = " World Overview ";
+                    } else if (p == PANEL_ENTITIES) {
+                        title = " Entities ";
+                    } else if (p == PANEL_INSPECTOR) {
+                        title = " Component Inspector ";
+                    }
+
+                    if (p != PANEL_STATUS) {
+                        PanelRendererDrawBorder(renderer, win, title,
+                                                isFocused);
+                    }
+
+                    PanelMockRenderContent(renderer, win, (PanelId)p, &mockData,
+                                           isFocused);
+                    wnoutrefresh(win);
+                }
+
+                PanelRendererEndFrame(renderer);
             }
-            PanelRendererEndFrame(renderer);
-        } else {
-            PanelRendererBeginFrame(renderer);
-
-            for (int p = 0; p < PANEL_COUNT; ++p) {
-                WINDOW *win = PanelManagerGetWindow(manager, (PanelId)p);
-                if (win == NULL) {
-                    continue;
-                }
-
-                const bool isFocused =
-                    (PanelManagerGetFocus(manager) == (PanelId)p);
-                PanelRendererClearWindow(renderer, win);
-
-                const char *title = NULL;
-                if (p == PANEL_HEADER) {
-                    title = " World Overview ";
-                } else if (p == PANEL_ENTITIES) {
-                    title = " Entities ";
-                } else if (p == PANEL_INSPECTOR) {
-                    title = " Component Inspector ";
-                }
-
-                if (p != PANEL_STATUS) {
-                    PanelRendererDrawBorder(renderer, win, title, isFocused);
-                }
-
-                PanelMockRenderContent(renderer, win, (PanelId)p, &mockData,
-                                       isFocused);
-            }
-
-            PanelRendererEndFrame(renderer);
+            needsRedraw = false;
         }
 
         const int ch = getch();
         if (ch != ERR) {
+            needsRedraw = true;
             PanelEvent event;
             res = PanelManagerProcessInput(manager, ch, &event);
             if (res == APP_OK) {

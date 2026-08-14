@@ -101,8 +101,6 @@ void PanelRendererDrawBorder(PanelRenderer *renderer, WINDOW *win,
     } else {
         wattroff(win, COLOR_PAIR(PANEL_COLOR_BORDER_INACTIVE));
     }
-
-    wnoutrefresh(win);
 }
 
 /**
@@ -126,8 +124,6 @@ void PanelRendererDrawText(PanelRenderer *renderer, WINDOW *win, int y, int x,
     wattron(win, COLOR_PAIR(color));
     mvwprintw(win, y, x, "%s", text);
     wattroff(win, COLOR_PAIR(color));
-
-    wnoutrefresh(win);
 }
 
 /**
