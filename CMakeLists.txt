@@ -50,6 +50,7 @@ target_include_directories(cjson_static PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/vend
 # Include directories for project headers
 include_directories(
     "${CMAKE_CURRENT_SOURCE_DIR}/include"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src"
     "${CMAKE_CURRENT_SOURCE_DIR}/tests"
     "${CMAKE_CURRENT_SOURCE_DIR}/vendor"
     "${CMAKE_CURRENT_SOURCE_DIR}/vendor/cjson"
@@ -89,4 +90,8 @@ if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/tests/main.c")
     add_test(NAME AllTests COMMAND flecs_explorer_tests --all)
     add_test(NAME CommonTests COMMAND flecs_explorer_tests common)
     add_test(NAME JsonTests COMMAND flecs_explorer_tests json)
+    add_test(NAME HttpClientTests COMMAND flecs_explorer_tests http_client)
+    add_test(NAME FlecsDataTests COMMAND flecs_explorer_tests flecs_data)
+    add_test(NAME FlecsSessionTests COMMAND flecs_explorer_tests flecs_session)
+    add_test(NAME RestTests COMMAND flecs_explorer_tests rest)
 endif()
