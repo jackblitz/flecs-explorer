@@ -87,5 +87,6 @@ if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/tests/main.c")
     )
 
     add_test(NAME AllTests COMMAND flecs_explorer_tests --all)
+    add_test(NAME CommonTests COMMAND flecs_explorer_tests common)
     add_test(NAME JsonTests COMMAND flecs_explorer_tests json)
 endif()

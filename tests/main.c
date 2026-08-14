@@ -1,9 +1,15 @@
 #include "test_cli.h"
+#include "common/test_common.h"
 #include "json/test_json.h"
 #include <stdio.h>
 #include <string.h>
 
 static const TestSuite kSuites[] = {
+    {
+        .featureName = "common",
+        .description = "Common foundation & error mapping tests",
+        .runFunc = TestCommonRun
+    },
     {
         .featureName = "json",
         .description = "cJSON parsing, serialization, and memory lifecycle tests",
