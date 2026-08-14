@@ -96,7 +96,7 @@ AppResult PanelManagerInitTerminal(PanelManager *manager)
     curs_set(0);
 
     if (manager->config.enableMouse) {
-        mousemask(ALL_MOUSE_EVENTS | REPORT_MOUSE_POSITION, NULL);
+        mousemask(ALL_MOUSE_EVENTS, NULL);
     }
 
     PanelThemeInit(manager->config.enableColors);
@@ -153,9 +153,11 @@ void PanelManagerRestoreTerminal(PanelManager *manager)
 }
 
 /**
- * Frees all windows, layout memory, and the PanelManager instance.
+ * Frees all resources associated with the PanelManager.
  *
- * @param manager PanelManager instance to destroy. Can be NULL.
+ * Automatically restores terminal modes and deletes curses windows.
+ *
+ * @param manager PanelManager instance to free. Can be NULL.
  */
 void PanelManagerDestroy(PanelManager *manager)
 {
@@ -203,7 +205,7 @@ AppResult PanelManagerHandleResize(PanelManager *manager)
 
     if (stdscr != NULL) {
         resizeterm(screenHeight, screenWidth);
-        wresize(stdscr, screenHeight, screenWidth);
+        keypad(stdscr, TRUE);
         erase();
         wnoutrefresh(stdscr);
     }
@@ -234,7 +236,7 @@ AppResult PanelManagerProcessInput(PanelManager *manager, int ch,
 
     const AppResult res = PanelInputProcess(
         &manager->layout, &manager->focusedPanel, ch, outEvent);
-    if (res == APP_OK) {
+    if (res == APP_OK && outEvent->type != PANEL_EVENT_NONE) {
         manager->isDirty = true;
     }
     return res;
