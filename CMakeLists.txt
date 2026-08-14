@@ -50,7 +50,9 @@ target_include_directories(cjson_static PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/vend
 # Include directories for project headers
 include_directories(
     "${CMAKE_CURRENT_SOURCE_DIR}/include"
+    "${CMAKE_CURRENT_SOURCE_DIR}/tests"
     "${CMAKE_CURRENT_SOURCE_DIR}/vendor"
+    "${CMAKE_CURRENT_SOURCE_DIR}/vendor/cjson"
     ${CURSES_INCLUDE_DIRS}
     ${CURL_INCLUDE_DIRS}
 )
