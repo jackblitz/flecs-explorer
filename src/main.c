@@ -1,10 +1,11 @@
-#include "flecs_explorer/common.h"
+#include "flecs_explorer/common/common.h"
 #include "cJSON.h"
 #include <curl/curl.h>
 #include <curses.h>
 #include <stdio.h>
 
-int main(int argc, char **argv) {
+int main(int argc, char **argv)
+{
     (void)argc;
     (void)argv;
 

@@ -21,7 +21,8 @@ typedef enum AppResult {
 } AppResult;
 
 /**
- * @brief Returns a static, human-readable string description of an AppResult code.
+ * @brief Returns a static, human-readable string description of an AppResult
+ * code.
  *
  * @param result The result enum value.
  * @return A static, never-NULL string owned by the library.
