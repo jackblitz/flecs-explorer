@@ -34,12 +34,13 @@
  * double-buffered screen updates.
  */
 
-#include <stdbool.h>
 #include <curses.h>
+#include <stdbool.h>
 
 #include "flecs_explorer/common/common.h"
 #include "flecs_explorer/panel/panel_layout.h"
 #include "flecs_explorer/panel/panel_mock.h"
+#include "flecs_explorer/panel/panel_renderer.h"
 #include "flecs_explorer/panel/panel_theme.h"
 #include "flecs_explorer/panel/panel_types.h"
 
@@ -101,14 +102,6 @@ AppResult PanelManagerHandleResize(PanelManager *manager);
  */
 AppResult PanelManagerProcessInput(PanelManager *manager, int ch,
                                    PanelEvent *outEvent);
-
-/**
- * @brief Renders window borders, focus highlights, titles, and panel surfaces.
- *
- * @param manager PanelManager instance. Non-NULL.
- * @return APP_OK on success.
- */
-AppResult PanelManagerRender(PanelManager *manager);
 
 /**
  * @brief Explicitly sets the focused panel.

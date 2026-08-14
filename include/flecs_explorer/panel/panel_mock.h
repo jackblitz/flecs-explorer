@@ -18,10 +18,11 @@
  * the multi-pane UI layout before live Flecs REST integration.
  */
 
+#include <curses.h>
 #include <stdbool.h>
 #include <stdint.h>
-#include <curses.h>
 
+#include "flecs_explorer/panel/panel_renderer.h"
 #include "flecs_explorer/panel/panel_types.h"
 
 #ifdef __cplusplus
@@ -75,12 +76,13 @@ void PanelMockWorldDataInit(MockWorldData *outData);
  * @brief Renders mock content inside the given panel window using Darcula
  * styling.
  *
+ * @param renderer Dedicated PanelRenderer instance. Non-NULL.
  * @param win Curses WINDOW to render content into. Non-NULL.
  * @param panel PanelId identifying which view content to draw.
  * @param data Mock world data snapshot. Non-NULL.
  * @param isFocused true if this panel currently holds keyboard/mouse focus.
  */
-void PanelMockRenderContent(WINDOW *win, PanelId panel,
+void PanelMockRenderContent(PanelRenderer *renderer, WINDOW *win, PanelId panel,
                             const MockWorldData *data, bool isFocused);
 
 #ifdef __cplusplus
