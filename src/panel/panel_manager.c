@@ -1,7 +1,11 @@
+#define _POSIX_C_SOURCE 200809L
+
 #include "flecs_explorer/panel/panel_manager.h"
 
 #include <stdlib.h>
 #include <string.h>
+#include <sys/ioctl.h>
+#include <unistd.h>
 
 #include "panel/panel_input.h"
 #include "panel/panel_signals.h"
@@ -17,6 +21,7 @@ struct PanelManager {
     PanelWindows *windows;
     PanelId focusedPanel;
     bool terminalInitialized;
+    bool isDirty;
 };
 
 /**
@@ -45,6 +50,7 @@ AppResult PanelManagerCreate(const PanelConfig *config,
     manager->config = *config;
     manager->focusedPanel = PANEL_ENTITIES;
     manager->terminalInitialized = false;
+    manager->isDirty = true;
 
     // Use current screen dimensions or configured defaults
     int initialWidth = config->minWidth;
@@ -90,7 +96,7 @@ AppResult PanelManagerInitTerminal(PanelManager *manager)
     curs_set(0);
 
     if (manager->config.enableMouse) {
-        mousemask(ALL_MOUSE_EVENTS | REPORT_MOUSE_POSITION, NULL);
+        mousemask(ALL_MOUSE_EVENTS, NULL);
     }
 
     PanelThemeInit(manager->config.enableColors);
@@ -100,13 +106,27 @@ AppResult PanelManagerInitTerminal(PanelManager *manager)
     int screenHeight = 0;
     getmaxyx(stdscr, screenHeight, screenWidth);
 
+#ifdef TIOCGWINSZ
+    struct winsize ws;
+    if (ioctl(STDOUT_FILENO, TIOCGWINSZ, &ws) == 0 && ws.ws_col > 0 &&
+        ws.ws_row > 0) {
+        screenWidth = (int)ws.ws_col;
+        screenHeight = (int)ws.ws_row;
+        resizeterm(screenHeight, screenWidth);
+    }
+#endif
+
     PanelLayoutCompute(
         screenWidth, screenHeight, manager->config.entityPanelRatio,
         manager->config.minWidth, manager->config.minHeight, &manager->layout);
 
     PanelWindowsResize(manager->windows, &manager->layout);
 
+    erase();
+    refresh();
+
     manager->terminalInitialized = true;
+    manager->isDirty = true;
     return APP_OK;
 }
 
@@ -133,9 +153,11 @@ void PanelManagerRestoreTerminal(PanelManager *manager)
 }
 
 /**
- * Frees all windows, layout memory, and the PanelManager instance.
+ * Frees all resources associated with the PanelManager.
  *
- * @param manager PanelManager instance to destroy. Can be NULL.
+ * Automatically restores terminal modes and deletes curses windows.
+ *
+ * @param manager PanelManager instance to free. Can be NULL.
  */
 void PanelManagerDestroy(PanelManager *manager)
 {
@@ -168,14 +190,31 @@ AppResult PanelManagerHandleResize(PanelManager *manager)
     int screenWidth = manager->layout.screenWidth;
     int screenHeight = manager->layout.screenHeight;
 
+#ifdef TIOCGWINSZ
+    struct winsize ws;
+    if (ioctl(STDOUT_FILENO, TIOCGWINSZ, &ws) == 0 && ws.ws_col > 0 &&
+        ws.ws_row > 0) {
+        screenWidth = (int)ws.ws_col;
+        screenHeight = (int)ws.ws_row;
+    } else if (ioctl(STDIN_FILENO, TIOCGWINSZ, &ws) == 0 && ws.ws_col > 0 &&
+               ws.ws_row > 0) {
+        screenWidth = (int)ws.ws_col;
+        screenHeight = (int)ws.ws_row;
+    }
+#endif
+
     if (stdscr != NULL) {
-        getmaxyx(stdscr, screenHeight, screenWidth);
+        resizeterm(screenHeight, screenWidth);
+        keypad(stdscr, TRUE);
+        erase();
+        wnoutrefresh(stdscr);
     }
 
     PanelLayoutCompute(
         screenWidth, screenHeight, manager->config.entityPanelRatio,
         manager->config.minWidth, manager->config.minHeight, &manager->layout);
 
+    manager->isDirty = true;
     return PanelWindowsResize(manager->windows, &manager->layout);
 }
 
@@ -195,8 +234,12 @@ AppResult PanelManagerProcessInput(PanelManager *manager, int ch,
         return APP_ERROR_INVALID_ARGUMENT;
     }
 
-    return PanelInputProcess(&manager->layout, &manager->focusedPanel, ch,
-                             outEvent);
+    const AppResult res = PanelInputProcess(
+        &manager->layout, &manager->focusedPanel, ch, outEvent);
+    if (res == APP_OK && outEvent->type != PANEL_EVENT_NONE) {
+        manager->isDirty = true;
+    }
+    return res;
 }
 
 /**
@@ -211,13 +254,17 @@ void PanelManagerSetFocus(PanelManager *manager, PanelId panel)
         return;
     }
 
-    manager->focusedPanel = panel;
+    if (manager->focusedPanel != panel) {
+        manager->focusedPanel = panel;
+        manager->isDirty = true;
+    }
 }
 
 /**
  * Returns the currently focused panel ID.
  *
  * @param manager PanelManager instance.
+ * @param panel PanelId enum value.
  * @return Currently focused PanelId, or PANEL_COUNT if manager is NULL.
  */
 PanelId PanelManagerGetFocus(const PanelManager *manager)
@@ -239,6 +286,7 @@ void PanelManagerFocusNext(PanelManager *manager)
         return;
     }
     PanelInputFocusNext(&manager->focusedPanel);
+    manager->isDirty = true;
 }
 
 /**
@@ -252,6 +300,7 @@ void PanelManagerFocusPrev(PanelManager *manager)
         return;
     }
     PanelInputFocusPrev(&manager->focusedPanel);
+    manager->isDirty = true;
 }
 
 /**
@@ -312,4 +361,44 @@ const PanelLayout *PanelManagerGetLayout(const PanelManager *manager)
         return NULL;
     }
     return &manager->layout;
+}
+
+/**
+ * Checks if the panel manager has pending UI state changes requiring a redraw.
+ *
+ * @param manager PanelManager instance.
+ * @return true if dirty; false otherwise.
+ */
+bool PanelManagerIsDirty(const PanelManager *manager)
+{
+    if (manager == NULL) {
+        return false;
+    }
+    return manager->isDirty;
+}
+
+/**
+ * Marks the panel manager as dirty, requesting a redraw on the next frame.
+ *
+ * @param manager PanelManager instance.
+ */
+void PanelManagerMarkDirty(PanelManager *manager)
+{
+    if (manager == NULL) {
+        return;
+    }
+    manager->isDirty = true;
+}
+
+/**
+ * Clears the dirty flag on the panel manager after rendering completes.
+ *
+ * @param manager PanelManager instance.
+ */
+void PanelManagerClearDirty(PanelManager *manager)
+{
+    if (manager == NULL) {
+        return;
+    }
+    manager->isDirty = false;
 }

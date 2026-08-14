@@ -102,23 +102,16 @@ AppResult PanelWindowsResize(PanelWindows *windows, const PanelLayout *layout)
         const PanelRect newRect = GetRectForPanel(layout, (PanelId)i);
         windows->rects[i] = newRect;
 
-        if (layout->isTooSmall) {
+        if (windows->windows[i] != NULL) {
+            delwin(windows->windows[i]);
+            windows->windows[i] = NULL;
+        }
+
+        if (!layout->isTooSmall && newRect.width > 0 && newRect.height > 0) {
+            windows->windows[i] =
+                newwin(newRect.height, newRect.width, newRect.y, newRect.x);
             if (windows->windows[i] != NULL) {
-                delwin(windows->windows[i]);
-                windows->windows[i] = NULL;
-            }
-        } else {
-            if (windows->windows[i] == NULL) {
-                if (newRect.width > 0 && newRect.height > 0) {
-                    windows->windows[i] = newwin(newRect.height, newRect.width,
-                                                 newRect.y, newRect.x);
-                    if (windows->windows[i] != NULL) {
-                        keypad(windows->windows[i], TRUE);
-                    }
-                }
-            } else {
-                wresize(windows->windows[i], newRect.height, newRect.width);
-                mvwin(windows->windows[i], newRect.y, newRect.x);
+                keypad(windows->windows[i], TRUE);
             }
         }
     }

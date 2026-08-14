@@ -50,6 +50,21 @@ AppResult PanelRendererBeginFrame(PanelRenderer *renderer)
 }
 
 /**
+ * Queues a curses window's virtual buffer to be drawn on the next frame.
+ *
+ * @param renderer PanelRenderer instance.
+ * @param win Target curses WINDOW.
+ */
+void PanelRendererFlushWindow(PanelRenderer *renderer, WINDOW *win)
+{
+    (void)renderer;
+    if (win != NULL) {
+        touchwin(win);
+        wnoutrefresh(win);
+    }
+}
+
+/**
  * Commits all queued window buffer updates atomically (doupdate).
  *
  * @param renderer PanelRenderer instance.
@@ -101,8 +116,6 @@ void PanelRendererDrawBorder(PanelRenderer *renderer, WINDOW *win,
     } else {
         wattroff(win, COLOR_PAIR(PANEL_COLOR_BORDER_INACTIVE));
     }
-
-    wnoutrefresh(win);
 }
 
 /**
@@ -126,8 +139,6 @@ void PanelRendererDrawText(PanelRenderer *renderer, WINDOW *win, int y, int x,
     wattron(win, COLOR_PAIR(color));
     mvwprintw(win, y, x, "%s", text);
     wattroff(win, COLOR_PAIR(color));
-
-    wnoutrefresh(win);
 }
 
 /**

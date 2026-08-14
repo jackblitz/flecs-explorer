@@ -61,7 +61,7 @@ include_directories(
 # Main application executable (conditional on src/main.c existence)
 if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/src/main.c")
     file(GLOB_RECURSE APP_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/src/*.c")
-    add_executable(flecs_explorer ${APP_SOURCES})
+    add_executable(flecs_explorer ${APP_SOURCES} "${CMAKE_CURRENT_SOURCE_DIR}/tests/panel/panel_mock.c")
     target_link_libraries(flecs_explorer PRIVATE
         cjson_static
         ${CURSES_LIBRARIES}
@@ -98,6 +98,7 @@ if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/tests/main.c")
     add_test(NAME PanelRendererTests COMMAND flecs_explorer_tests panel_renderer)
     add_test(NAME PanelInputTests COMMAND flecs_explorer_tests panel_input)
     add_test(NAME PanelManagerTests COMMAND flecs_explorer_tests panel_manager)
+    add_test(NAME PanelMockTests COMMAND flecs_explorer_tests panel_mock)
     add_test(NAME HttpClientTests COMMAND flecs_explorer_tests http_client)
     add_test(NAME FlecsDataTests COMMAND flecs_explorer_tests flecs_data)
     add_test(NAME FlecsSessionTests COMMAND flecs_explorer_tests flecs_session)
